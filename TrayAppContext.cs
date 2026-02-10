@@ -1,35 +1,41 @@
 using System;
 using System.Drawing;
+using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace MouseJigglerTray
+namespace MouseJiggler
 {
     public sealed class TrayAppContext : ApplicationContext
     {
         private readonly NotifyIcon _trayIcon;
+        private readonly System.Windows.Forms.Timer _timer;
+
         private readonly ToolStripMenuItem _startItem;
         private readonly ToolStripMenuItem _stopItem;
-        private readonly System.Windows.Forms.Timer _timer;
 
         private int _seconds;
         private int _pixels;
 
-        // drift=0 ama biraz "insansı" olsun diye X/Y dönüşümlü
+        private const int VisibleDelayMs = 80;
+
         private bool _useY = false;
+        private bool _isTickRunning = false;
 
         public TrayAppContext()
         {
             var cfg = AppConfig.Load();
             _seconds = cfg.Seconds <= 0 ? 30 : cfg.Seconds;
-            _pixels = cfg.Pixels <= 0 ? 2 : cfg.Pixels;
+            _pixels  = cfg.Pixels  <= 0 ? 2  : cfg.Pixels;
 
             _timer = new System.Windows.Forms.Timer();
-            _timer.Tick += (_, __) => JiggleOnce();
+            _timer.Tick += async (_, __) => await OnTickAsync();
             ApplyTimerInterval();
 
             _startItem = new ToolStripMenuItem("Start", null, (_, __) => Start());
             _stopItem  = new ToolStripMenuItem("Stop",  null, (_, __) => Stop()) { Enabled = false };
             var settingsItem = new ToolStripMenuItem("Settings...", null, (_, __) => OpenSettings());
+            var jiggleNowItem = new ToolStripMenuItem("Jiggle now", null, async (_, __) => await JiggleOnceAsync());
             var exitItem = new ToolStripMenuItem("Exit", null, (_, __) => Exit());
 
             var menu = new ContextMenuStrip();
@@ -39,14 +45,17 @@ namespace MouseJigglerTray
                 _stopItem,
                 new ToolStripSeparator(),
                 settingsItem,
+                jiggleNowItem,
                 new ToolStripSeparator(),
                 exitItem
             });
 
+            var trayIcon = LoadTrayIcon();
+
             _trayIcon = new NotifyIcon
             {
-                Text = "Mouse Jiggler (Tray)",
-                Icon = SystemIcons.Application,
+                Text = "MouseJiggler",
+                Icon = trayIcon,
                 ContextMenuStrip = menu,
                 Visible = true
             };
@@ -58,6 +67,19 @@ namespace MouseJigglerTray
             };
 
             ShowBalloon($"Ready. Every {_seconds}s, move {_pixels}px (drift=0).");
+        }
+
+        private Icon LoadTrayIcon()
+        {
+            try
+            {
+                var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "mouse.ico");
+                if (File.Exists(iconPath))
+                    return new Icon(iconPath);
+            }
+            catch { /* ignore */ }
+
+            return SystemIcons.Application;
         }
 
         private void ApplyTimerInterval()
@@ -84,6 +106,7 @@ namespace MouseJigglerTray
             if (!_timer.Enabled) return;
 
             _timer.Stop();
+
             _startItem.Enabled = true;
             _stopItem.Enabled = false;
 
@@ -93,7 +116,9 @@ namespace MouseJigglerTray
         private void OpenSettings()
         {
             using var dlg = new SettingsForm(_seconds, _pixels);
-            if (dlg.ShowDialog() != DialogResult.OK) return;
+
+            if (dlg.ShowDialog() != DialogResult.OK)
+                return;
 
             _seconds = dlg.Seconds;
             _pixels  = dlg.Pixels;
@@ -117,15 +142,29 @@ namespace MouseJigglerTray
         {
             try
             {
-                _trayIcon.BalloonTipTitle = "Mouse Jiggler";
+                _trayIcon.BalloonTipTitle = "MouseJiggler";
                 _trayIcon.BalloonTipText = message;
                 _trayIcon.ShowBalloonTip(2000);
             }
             catch { }
         }
 
-        // DRIFT = 0: hareket ettir ve eski konuma geri dön
-        private void JiggleOnce()
+        private async Task OnTickAsync()
+        {
+            if (_isTickRunning) return;
+            _isTickRunning = true;
+
+            try
+            {
+                await JiggleOnceAsync();
+            }
+            finally
+            {
+                _isTickRunning = false;
+            }
+        }
+
+        private async Task JiggleOnceAsync()
         {
             var p = Cursor.Position;
 
@@ -134,7 +173,9 @@ namespace MouseJigglerTray
             else
                 Cursor.Position = new Point(p.X + _pixels, p.Y);
 
-            Cursor.Position = p; // drift=0 garanti
+            await Task.Delay(VisibleDelayMs);
+
+            Cursor.Position = p;
             _useY = !_useY;
         }
     }

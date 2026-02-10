@@ -1,13 +1,12 @@
-# MouseJigglerTray
+# MouseJiggler
 
-Windows 10+ tray app that moves the mouse periodically to prevent idle/sleep.
+Windows 10+ tray app that moves the mouse periodically to prevent idle.
 
-- Configurable: interval (seconds) + move distance (pixels)
 - Tray icon only (no taskbar window)
-- Drift = 0 (moves then returns)
+- Configurable interval (seconds) + distance (pixels)
+- Drift = 0 (returns to original position)
+- Visible jiggle (80ms delay)
 
-## Run (Windows)
-dotnet run
-
-## Publish (Windows x64)
-dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
+## Build (GitHub Actions)
+Artifact path:
+bin\Release\net8.0-windows\win-x64\publish\MouseJiggler.exe

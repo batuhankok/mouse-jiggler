@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-namespace MouseJigglerTray
+namespace MouseJiggler
 {
     public sealed class AppConfig
     {
@@ -10,7 +10,7 @@ namespace MouseJigglerTray
         public int Pixels  { get; set; } = 2;
 
         private static string ConfigDir =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MouseJigglerTray");
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MouseJiggler");
 
         private static string ConfigPath => Path.Combine(ConfigDir, "config.json");
 

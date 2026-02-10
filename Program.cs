@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace MouseJigglerTray
+namespace MouseJiggler
 {
     internal static class Program
     {
