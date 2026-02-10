@@ -18,12 +18,11 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      - name: Publish (single file, self-contained)
+      - name: Publish
         run: dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true
 
-      - name: Upload artifact (single exe only)
+      - name: Upload artifact (single exe)
         uses: actions/upload-artifact@v4
         with:
           name: MouseJiggler
-          path: |
-            bin/Release/net8.0-windows/win-x64/publish/MouseJiggler.exe
+          path: bin/Release/net8.0-windows/win-x64/publish/MouseJiggler.exe

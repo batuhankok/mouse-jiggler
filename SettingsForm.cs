@@ -5,25 +5,37 @@ namespace MouseJiggler
 {
     public sealed class SettingsForm : Form
     {
-        private readonly NumericUpDown _secondsInput;
-        private readonly NumericUpDown _pixelsInput;
+        private readonly NumericUpDown _seconds;
+        private readonly NumericUpDown _pixels;
+
         private readonly CheckBox _startOnLaunch;
 
-        private readonly Button _startBtn;
-        private readonly Button _stopBtn;
+        private readonly CheckBox _idleAware;
+        private readonly NumericUpDown _idleThresholdSeconds;
+
+        private readonly CheckBox _safeMode;
+        private readonly NumericUpDown _jitterPercent;
 
         private readonly Func<bool> _isRunning;
         private readonly Action _start;
         private readonly Action _stop;
 
-        public int Seconds => (int)_secondsInput.Value;
-        public int Pixels  => (int)_pixelsInput.Value;
+        private readonly Button _startBtn;
+        private readonly Button _stopBtn;
+
+        public int Seconds => (int)_seconds.Value;
+        public int Pixels => (int)_pixels.Value;
+
         public bool StartOnLaunch => _startOnLaunch.Checked;
 
+        public bool IdleAware => _idleAware.Checked;
+        public int IdleThresholdSeconds => (int)_idleThresholdSeconds.Value;
+
+        public bool SafeMode => _safeMode.Checked;
+        public int RandomJitterPercent => (int)_jitterPercent.Value;
+
         public SettingsForm(
-            int seconds,
-            int pixels,
-            bool startOnLaunch,
+            AppConfig cfg,
             Func<bool> isRunning,
             Action start,
             Action stop
@@ -34,60 +46,116 @@ namespace MouseJiggler
             _stop = stop;
 
             Text = "MouseJiggler Settings";
+            Width = 450;
+            Height = 360;
+            TopMost = true;
+            StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            StartPosition = FormStartPosition.CenterScreen;
-            Width = 380;
-            Height = 240;
+            ShowInTaskbar = false;
 
-            var secondsLabel = new Label { Left = 15, Top = 20, Width = 190, Text = "Move every (seconds):" };
-            _secondsInput = new NumericUpDown
+            Shown += (_, __) =>
             {
-                Left = 210, Top = 18, Width = 140,
-                Minimum = 1, Maximum = 3600,
-                Value = Math.Clamp(seconds, 1, 3600)
+                Activate();
+                BringToFront();
+                RefreshRunButtons();
             };
 
-            var pixelsLabel = new Label { Left = 15, Top = 55, Width = 190, Text = "Move distance (pixels):" };
-            _pixelsInput = new NumericUpDown
-            {
-                Left = 210, Top = 53, Width = 140,
-                Minimum = 1, Maximum = 200,
-                Value = Math.Clamp(pixels, 1, 200)
-            };
+            var y = 18;
+
+            var l1 = new Label { Text = "Interval (seconds):", Left = 15, Top = y + 3, Width = 200 };
+            _seconds = new NumericUpDown { Left = 230, Top = y, Width = 180, Minimum = 1, Maximum = 3600, Value = cfg.Seconds };
+            y += 35;
+
+            var l2 = new Label { Text = "Distance (pixels):", Left = 15, Top = y + 3, Width = 200 };
+            _pixels = new NumericUpDown { Left = 230, Top = y, Width = 180, Minimum = 1, Maximum = 200, Value = cfg.Pixels };
+            y += 40;
 
             _startOnLaunch = new CheckBox
             {
-                Left = 15,
-                Top = 90,
-                Width = 260,
                 Text = "Start automatically on launch",
-                Checked = startOnLaunch
+                Left = 15,
+                Top = y,
+                Width = 300,
+                Checked = cfg.StartOnLaunch
             };
+            y += 40;
 
-            _startBtn = new Button { Text = "Start", Left = 15, Top = 125, Width = 80 };
-            _stopBtn  = new Button { Text = "Stop", Left = 105, Top = 125, Width = 80 };
+            _idleAware = new CheckBox
+            {
+                Text = "Idle-aware mode (only jiggle when user is idle)",
+                Left = 15,
+                Top = y,
+                Width = 420,
+                Checked = cfg.IdleAware
+            };
+            y += 35;
+
+            var l3 = new Label { Text = "Idle threshold (seconds):", Left = 35, Top = y + 3, Width = 200 };
+            _idleThresholdSeconds = new NumericUpDown
+            {
+                Left = 230,
+                Top = y,
+                Width = 180,
+                Minimum = 1,
+                Maximum = 3600,
+                Value = Math.Clamp(cfg.IdleThresholdSeconds, 1, 3600)
+            };
+            y += 40;
+
+            _safeMode = new CheckBox
+            {
+                Text = "Randomized safe mode (jitter interval & direction)",
+                Left = 15,
+                Top = y,
+                Width = 420,
+                Checked = cfg.SafeMode
+            };
+            y += 35;
+
+            var l4 = new Label { Text = "Interval jitter (%):", Left = 35, Top = y + 3, Width = 200 };
+            _jitterPercent = new NumericUpDown
+            {
+                Left = 230,
+                Top = y,
+                Width = 180,
+                Minimum = 0,
+                Maximum = 80,
+                Value = Math.Clamp(cfg.RandomJitterPercent, 0, 80)
+            };
+            y += 45;
+
+            _startBtn = new Button { Text = "Start", Left = 15, Top = y, Width = 90 };
+            _stopBtn  = new Button { Text = "Stop", Left = 115, Top = y, Width = 90 };
 
             _startBtn.Click += (_, __) => { _start(); RefreshRunButtons(); };
             _stopBtn.Click  += (_, __) => { _stop();  RefreshRunButtons(); };
 
-            var okBtn = new Button { Text = "OK", Left = 190, Width = 75, Top = 165, DialogResult = DialogResult.OK };
-            var cancelBtn = new Button { Text = "Cancel", Left = 275, Width = 75, Top = 165, DialogResult = DialogResult.Cancel };
+            var okBtn = new Button { Text = "OK", Left = 250, Top = y, Width = 75, DialogResult = DialogResult.OK };
+            var cancelBtn = new Button { Text = "Cancel", Left = 335, Top = y, Width = 75, DialogResult = DialogResult.Cancel };
 
             AcceptButton = okBtn;
             CancelButton = cancelBtn;
 
             Controls.AddRange(new Control[]
             {
-                secondsLabel, _secondsInput,
-                pixelsLabel, _pixelsInput,
+                l1, _seconds,
+                l2, _pixels,
                 _startOnLaunch,
+                _idleAware,
+                l3, _idleThresholdSeconds,
+                _safeMode,
+                l4, _jitterPercent,
                 _startBtn, _stopBtn,
                 okBtn, cancelBtn
             });
 
-            Shown += (_, __) => RefreshRunButtons();
+            _idleAware.CheckedChanged += (_, __) => _idleThresholdSeconds.Enabled = _idleAware.Checked;
+            _safeMode.CheckedChanged += (_, __) => _jitterPercent.Enabled = _safeMode.Checked;
+
+            _idleThresholdSeconds.Enabled = _idleAware.Checked;
+            _jitterPercent.Enabled = _safeMode.Checked;
         }
 
         private void RefreshRunButtons()
