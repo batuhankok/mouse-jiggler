@@ -9,7 +9,7 @@ namespace MouseJigglerTray
         private readonly NotifyIcon _trayIcon;
         private readonly ToolStripMenuItem _startItem;
         private readonly ToolStripMenuItem _stopItem;
-        private readonly Timer _timer;
+        private readonly System.Windows.Forms.Timer _timer;
 
         private int _seconds;
         private int _pixels;
@@ -23,7 +23,7 @@ namespace MouseJigglerTray
             _seconds = cfg.Seconds <= 0 ? 30 : cfg.Seconds;
             _pixels = cfg.Pixels <= 0 ? 2 : cfg.Pixels;
 
-            _timer = new Timer();
+            _timer = new System.Windows.Forms.Timer();
             _timer.Tick += (_, __) => JiggleOnce();
             ApplyTimerInterval();
 
