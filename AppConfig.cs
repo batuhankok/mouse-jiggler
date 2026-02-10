@@ -9,6 +9,8 @@ namespace MouseJiggler
         public int Seconds { get; set; } = 30;
         public int Pixels  { get; set; } = 2;
 
+        public bool StartOnLaunch { get; set; } = false;
+
         private static string ConfigDir =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MouseJiggler");
 
@@ -19,7 +21,6 @@ namespace MouseJiggler
             try
             {
                 if (!File.Exists(ConfigPath)) return new AppConfig();
-
                 var json = File.ReadAllText(ConfigPath);
                 return JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
             }

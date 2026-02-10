@@ -7,44 +7,73 @@ namespace MouseJiggler
     {
         private readonly NumericUpDown _secondsInput;
         private readonly NumericUpDown _pixelsInput;
+        private readonly CheckBox _startOnLaunch;
+
+        private readonly Button _startBtn;
+        private readonly Button _stopBtn;
+
+        private readonly Func<bool> _isRunning;
+        private readonly Action _start;
+        private readonly Action _stop;
 
         public int Seconds => (int)_secondsInput.Value;
         public int Pixels  => (int)_pixelsInput.Value;
+        public bool StartOnLaunch => _startOnLaunch.Checked;
 
-        public SettingsForm(int seconds, int pixels)
+        public SettingsForm(
+            int seconds,
+            int pixels,
+            bool startOnLaunch,
+            Func<bool> isRunning,
+            Action start,
+            Action stop
+        )
         {
-            Text = "Settings";
+            _isRunning = isRunning;
+            _start = start;
+            _stop = stop;
+
+            Text = "MouseJiggler Settings";
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            Width = 340;
-            Height = 190;
+            Width = 380;
+            Height = 240;
 
-            var secondsLabel = new Label { Left = 15, Top = 20, Width = 170, Text = "Move every (seconds):" };
+            var secondsLabel = new Label { Left = 15, Top = 20, Width = 190, Text = "Move every (seconds):" };
             _secondsInput = new NumericUpDown
             {
-                Left = 190, Top = 18, Width = 120,
+                Left = 210, Top = 18, Width = 140,
                 Minimum = 1, Maximum = 3600,
                 Value = Math.Clamp(seconds, 1, 3600)
             };
 
-            var pixelsLabel = new Label { Left = 15, Top = 55, Width = 170, Text = "Move distance (pixels):" };
+            var pixelsLabel = new Label { Left = 15, Top = 55, Width = 190, Text = "Move distance (pixels):" };
             _pixelsInput = new NumericUpDown
             {
-                Left = 190, Top = 53, Width = 120,
+                Left = 210, Top = 53, Width = 140,
                 Minimum = 1, Maximum = 200,
                 Value = Math.Clamp(pixels, 1, 200)
             };
 
-            var hint = new Label
+            _startOnLaunch = new CheckBox
             {
-                Left = 15, Top = 85, Width = 300,
-                Text = "Tip: For visible test, try 2s / 10px."
+                Left = 15,
+                Top = 90,
+                Width = 260,
+                Text = "Start automatically on launch",
+                Checked = startOnLaunch
             };
 
-            var okBtn = new Button { Text = "OK", Left = 145, Width = 80, Top = 115, DialogResult = DialogResult.OK };
-            var cancelBtn = new Button { Text = "Cancel", Left = 230, Width = 80, Top = 115, DialogResult = DialogResult.Cancel };
+            _startBtn = new Button { Text = "Start", Left = 15, Top = 125, Width = 80 };
+            _stopBtn  = new Button { Text = "Stop", Left = 105, Top = 125, Width = 80 };
+
+            _startBtn.Click += (_, __) => { _start(); RefreshRunButtons(); };
+            _stopBtn.Click  += (_, __) => { _stop();  RefreshRunButtons(); };
+
+            var okBtn = new Button { Text = "OK", Left = 190, Width = 75, Top = 165, DialogResult = DialogResult.OK };
+            var cancelBtn = new Button { Text = "Cancel", Left = 275, Width = 75, Top = 165, DialogResult = DialogResult.Cancel };
 
             AcceptButton = okBtn;
             CancelButton = cancelBtn;
@@ -53,9 +82,19 @@ namespace MouseJiggler
             {
                 secondsLabel, _secondsInput,
                 pixelsLabel, _pixelsInput,
-                hint,
+                _startOnLaunch,
+                _startBtn, _stopBtn,
                 okBtn, cancelBtn
             });
+
+            Shown += (_, __) => RefreshRunButtons();
+        }
+
+        private void RefreshRunButtons()
+        {
+            var running = _isRunning();
+            _startBtn.Enabled = !running;
+            _stopBtn.Enabled = running;
         }
     }
 }

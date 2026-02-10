@@ -14,9 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Assets\mouse.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <EmbeddedResource Include="Assets\mouse.ico" />
   </ItemGroup>
 
 </Project>
